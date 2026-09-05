@@ -80,7 +80,7 @@
 - Локализация CLI и формата экспорта не планируется (SPEC.md §3.5).
 
 ]]></description>
-            <enclosure url="https://github.com/fanelsi-pets/MeetingScribe-releases/releases/download/v1.0.1/MeetingScribe-1.0.0.dmg" length="19550977" type="application/octet-stream" sparkle:edSignature="SI59AcUJwH1WM8pdUHpwFvp3dkOxpfOiHbezXFmBbifTlyQ4LLt7ROeuZjhJxUruOPgGfpSih+s2QlAwU+RsBw=="/>
+            <enclosure url="https://github.com/fanelsi-pets/MeetingScribe-releases/releases/download/v1.0.0/MeetingScribe-1.0.0.dmg" length="19550977" type="application/octet-stream" sparkle:edSignature="SI59AcUJwH1WM8pdUHpwFvp3dkOxpfOiHbezXFmBbifTlyQ4LLt7ROeuZjhJxUruOPgGfpSih+s2QlAwU+RsBw=="/>
         </item>
     </channel>
 </rss>
