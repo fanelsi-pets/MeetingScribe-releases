@@ -3,6 +3,23 @@
     <channel>
         <title>MeetingScribe</title>
         <item>
+            <title>1.0.2</title>
+            <pubDate>Sat, 05 Sep 2026 22:07:24 +0300</pubDate>
+            <link>https://github.com/fanelsi-pets/MeetingScribe-releases</link>
+            <sparkle:version>9</sparkle:version>
+            <sparkle:shortVersionString>1.0.2</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[
+Через две минуты после обновления на 1.0.1 приложение упало (`EXC_BAD_ACCESS` в `swift_beginAccess` внутри раскладки AppKit в `-[NSSplitView mouseDown:]`, то есть при перетаскивании разделителя): пользователь подтвердил семь спикеров в инспекторе и потянул разделитель.
+
+- Причина: явный минимум колонки встречи из 1.0.1 (`navigationSplitViewColumnWidth(min: 480, ideal: 620)`) складывался с шириной открытого инспектора (320): при перетаскивании NSSplitView соблюдает сумму минимумов, 290 + 480 + 320 > 900, и split view снова выходил за окно (панель обрезана слева, инспектор — за правым краем; воспроизведено на Debug-сборке с инспектором), а в этом состоянии AppKit падал в раскладке. Минимум колонки убран, остаётся только `.frame(minWidth: 0, maxWidth: .infinity)` на её содержимом (`MainWindow.swift`); DESIGN.md §2 обновлён.
+- Проверено на Debug-сборке с открытым инспектором: при ширине окна 900 разделитель сайдбара стоит на месте (запаса нет, переполнения нет); в полноэкранном окне сайдбар доходит до 420 и останавливается, инспектор растягивается до 460 и сворачивается при перетаскивании за минимум — без обрезки и падений. Само падение на Debug-сборке воспроизвести не удалось (нужен точный момент перетаскивания), исправление устраняет состояние, в котором оно случилось.
+
+]]></description>
+            <enclosure url="https://github.com/fanelsi-pets/MeetingScribe-releases/releases/download/v1.0.2/MeetingScribe-1.0.2.dmg" length="19572638" type="application/octet-stream" sparkle:edSignature="w1LdEbLemEHeoJIEnAiLqgowhZS7nPDff7fs2+94z5EiL/Kpa5Jd+qa0uJPrWhpnvDaTGWt9jPaxS+c19U24CA=="/>
+        </item>
+        <item>
             <title>1.0.1</title>
             <pubDate>Sat, 05 Sep 2026 21:26:54 +0300</pubDate>
             <link>https://github.com/fanelsi-pets/MeetingScribe-releases</link>
