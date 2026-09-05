@@ -1,0 +1,53 @@
+<?xml version="1.0" standalone="yes"?>
+<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
+    <channel>
+        <title>MeetingScribe</title>
+        <item>
+            <title>1.0.0</title>
+            <pubDate>Sat, 05 Sep 2026 19:24:49 +0300</pubDate>
+            <link>https://github.com/fanelsi-pets/MeetingScribe-releases</link>
+            <sparkle:version>7</sparkle:version>
+            <sparkle:shortVersionString>1.0.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[
+Онбординг первого запуска, свой загрузчик моделей, самопроверка, диагностика, локализация ru/uk/en, иконка, подписанные `.app` и DMG (PROMPT.md, фаза 5; ADR-008).
+
+- ModelDownload (новый модуль): листинг Hugging Face tree API с пагинацией, скачивание в `.part` с докачкой `Range` (200 вместо 206 — заново), sha256/git-oid после каждого файла с одной повторной попыткой, манифест `.meetingscribe-manifest.json`, `verify` без сети, байты/скорость/троттлинг событий, проверка места, отмена с сохранением частей; `ModelID.downloadSpec` повторяет наборы файлов библиотек (parakeet 483 MB вместо 3.6 GB репозитория, токенизатор 3 файла вместо 24 GB). CLI: `models download [--no-prepare]`, `models verify`. Протокол `ModelDownloading` (Core), `ScriptedModelDownloader` (Engines).
+- Core: `SystemInfo`/`HardwareCheck` (чип, Apple Silicon, память, ОС, Metal, место на диске), `AppLog` (unified logging, выборка для отчёта), контракт загрузчика.
+- Pipeline: `SelfTestRunner` — прогон на встроенном сэмпле (28 с, `say` Milena ru + Lesya uk) с таймингами стадий, ключевыми словами из манифеста и предупреждениями по спикерам/языкам.
+- Автообновление через Sparkle 2.9.6 (MIT, ADR-009): «Проверить обновления…» в меню приложения, секция «Обновления» в Settings → Общие (автопроверка с согласия пользователя, автоустановка), лента `appcast.xml` в репозитории с EdDSA-подписью, DMG из GitHub Releases; собственный модуль проверки версий из черновика фазы заменён Sparkle.
+- Приложение: онбординг из пяти шагов (проверка машины, языки встреч и режим, модели с МБ/%/скоростью/паузой/«Свернуть»/переносом из старых кэшей, самопроверка со стадиями, подсказка про Zoom), компактный статус загрузки в тулбаре, Help → «Первый запуск…»; Settings → «Диагностика» (машина, модели с ревизией и «Проверить файлы», самопроверка, «Собрать отчёт о проблеме» — JSON без аудио и текста), «Общие» → обновления Sparkle, «Языки» → языки встреч (кандидаты определения языка по спикеру), «Движки и модели» → скачивание с байтами и паузой; `AppSettings`: `onboardingCompleted`, `meetingLanguages`, `checkForUpdates`, изолированный suite для UI-тестов; «О программе» → `Credits.html` с атрибуцией CC BY 4.0.
+- Локализация: `App/MeetingScribe/Localizable.xcstrings` (ru → uk, en, ~700 ключей, формы числа вариациями), конверсия строк интерфейса и ошибок в `String(localized:)` (`Scripts/strings-localize.py`), извлечение/слияние/проверка (`strings-extract.py`, `strings-merge.py`, `strings-check.py`); экспорт и CLI намеренно русские; интерфейс следует языку системы.
+- Иконка: `App/MeetingScribe/AppIcon.icon` (Icon Composer, один растровый слой 1024×1024) из выбранной картинки `docs/design/app-icon-source.webp`; слой готовит `Scripts/make-app-icon.swift` (кадр по прямым краям сквиркла, дорисованные углы под системную маску, `preview` для читаемости 512…16 px), actool собирает `Assets.car` и `AppIcon.icns`, `AppIcon.appiconset` удалён; векторный вариант — `docs/design/AppIcon-vector.icon`. `ARCHS = arm64`; версия 1.0.0 (5); `README.md`.
+- Поставка: `Scripts/build-app.sh` (archive → export с Developer ID, hardened runtime, timestamp; нотаризация по `MS_NOTARY_PROFILE`), `Scripts/make-dmg.sh` (APFS/UDZO, подпись образа, staple), `Scripts/release.sh X.Y.Z` (ADR-009: версия и номер сборки, тесты, .app, DMG, `appcast.xml` с EdDSA-подписью через `generate_appcast`, коммит, тег, push, GitHub Release с DMG); `App/Info.plist` с `SUFeedURL`/`SUPublicEDKey` сливается с генерируемым Info.plist.
+- Тесты: `ModelDownloadTests` 26 (заглушка HF: план, докачка, 200 на Range, суммы, отмена, место, verify, пагинация), `UpdatesTests` 29, `PipelineTests` +4 (самопроверка), `AppTests` + онбординг/загрузка/отчёт/настройки/каталог строк — итог в замерах ниже; UI-тесты `OnboardingUITests` (сценарные движки и загрузчик) и `RealOnboardingSmokeUITests` (реальное скачивание и самопроверка, SPEC.md §7 п. 1).
+
+### Замеры фазы 5 (2026-09-05, M5 Pro, macOS 26.5.2)
+
+| Прогон | Результат | Комментарий |
+|---|---|---|
+| Unit-тесты `swift test` | **565 тестов в 122 наборах, ~11 с** | новых 64: ModelDownload 26, Pipeline +4 (самопроверка), App +34 (онбординг, загрузка, отчёт, настройки, каталог строк); модуль Updates с 29 тестами заменён Sparkle (ADR-009) |
+| Реальная докачка SpeakerKit (`RealDownloadSmokeTests`) | 43 файла, 33.1 MB, обрыв на 4.7 MB, докачано за 16.9 с, verify 0 повреждений | сеть из песочницы |
+| Самопроверка на реальных движках (CLI, встроенный сэмпл) | 4.1 с (6.8x), 2 спикера, 4 реплики, ru/uk 1.00, пик 400 MB | ключевые слова 10/10 |
+| /smoke (release-CLI, вне песочницы), `sample5min.wav`, 6 участников | **18.3 с (16.4x), пик 1.09 GB**, 54 реплики, спикер 5 → `uk` (1.00), отброшен 1 сегмент, интервал событий движков ≤ 1.8 с, снимков ≤ 1.0 с (342 снимка) | строки транскрипта **совпали с `Tests/Golden/sample5min.md` полностью** (54 = 54); пайплайн в фазе 5 не менялся, кроме кандидатов языка из настроек |
+| `Scripts/build-app.sh` | Developer ID, hardened runtime, timestamp, arm64, 28 MB; `spctl`: rejected (Unnotarized) — ожидаемо без профиля notarytool | |
+| `Scripts/release.sh 1.0.0` (2026-09-05) | `MeetingScribe-1.0.0.dmg` сборка 6, 19 549 775 байт, APFS/UDZO, подписан Developer ID, sha256 `610646b0…961bff69`; GitHub Release `v1.0.0` в публичном `fanelsi-pets/MeetingScribe-releases`, лента `appcast.xml` с EdDSA-подписью (`sparkle:version` 6); ассет скачивается анонимно (HTTP 200), sha ассета = локальному | код — приватный `fanelsi-pets/MeetingScribe` (тег `v1.0.0`); нотаризация — после `xcrun notarytool store-credentials` |
+| Каталог строк `Scripts/strings-check.py` | 715 ключей в коде = 715 в каталоге, uk/en полные, плейсхолдеры совпадают, 0 нелокализованных литералов интерфейса | 12 ключей с формами числа (ru/uk/en) |
+| UI-тесты (XCUITest, вне песочницы, 2026-09-05) | `OnboardingUITests` (новый: пять шагов на сценарных движках и загрузчике — проверка машины → языки → «Скачать» с полосой и МБ → самопроверка «работает» → «Начать») — **passed 34.9 с** + «Пропустить» 6.8 с; `FollowupUITests` 53.6 с, `ImportProcessExportUITests` 25.8 с, `SpeakerNamingUITests` 37.8 с — passed; `RealEnginesSmokeUITests` — passed 94.1 с; `RealOnboardingSmokeUITests` (новый, SPEC.md §7 п. 1: чистая папка моделей → реальное скачивание Whisper turbo + SpeakerKit ≈ 1,7 ГБ с прогрессом в МБ → самопроверка на встроенном сэмпле → «Готово») — **passed 215.2 с** при бюджете 15 мин | язык закреплён `-AppleLanguages (ru)`, настройки в отдельном suite; `Toggle` в `Form` на macOS — элемент `switch`, не `checkBox` (поправлен запрос теста) |
+
+### Ревью фазы 5 — исправлено
+Модули: остановленная на последнем файле модель выглядела готовой (`isPresent` смотрел только на записи, а загрузчик создаёт папки заранее) — теперь модель с частями `.part` не считается присутствующей (`ModelStore.hasIncompleteDownload`, тест); проверка места считала части скачанными, хотя при отказе сервера от `Range` файл идёт заново — считается по целым файлам (`ModelDownloadPlan.completedBytes`); листинг репозитория до 30 с шёл без единого события — пульс раз в секунду и подпись «запрашиваю список файлов · N с». Приложение: одна обёрнутая ветка тернария (`cond ? "Скрыть…" : String(localized: "Показать…")`) превращала выражение в `String` и уводила его в нелокализуемую перегрузку — обёрнуты обе ветки в 10 местах, `strings-check.py` теперь ловит нелокализованные литералы интерфейса; «Проверить файлы» шла без полосы — `ProgressView(value:)` с байтами и «Остановить»; заглушка репозитория обновлений `fanelsi-pets/MeetingScribe` заменена пустым значением — секция «Обновления» и автопроверка появляются только у сборок с заданным `MeetingScribeUIInfo.repository`; склеенные из кусков фразы («осталось » + прогноз, «N заметок в » + путь) стали цельными ключами; разделитель дробей в «1,64 ГБ» — по локали; длительность встроенного сэмпла — одна формулировка («около 30 секунд»); в отчёте о проблеме домашняя папка заменяется на «~» (тест); «Остановить» самопроверки сразу показывает «Останавливаю…» и блокирует кнопку; «О программе» локализовано (`uk.lproj`/`en.lproj/Credits.html`); в реальном UI-тесте онбординга добавлено ожидание между шагами; `codesign --verify` без `--deep`; исходник иконки описан в `docs/LICENSES.md`; дубликат раздела фазы в CHANGELOG убран.
+
+### Отложено (по итогам фазы 5)
+- Лицензия самого приложения (`LICENSE` в корне) не выбрана — решение за владельцем; зависимости и модели описаны в `docs/LICENSES.md`.
+- Профиль нотаризации (`xcrun notarytool store-credentials`) — настроить перед следующим релизом (`MS_NOTARY_PROFILE=… Scripts/release.sh`); до этого получатель DMG проходит «Всё равно открыть», а обновления Sparkle ставятся без карантина.
+- UI-тесты после встраивания Sparkle (пункт меню, секция настроек, `-SUEnableAutomaticChecks NO` в `UITestSupport`) не перепрогонялись — Mac был занят; прогнать при следующем окне.
+- Чекпоинты пайплайна и «Продолжить с этой стадии» (SPEC.md §4) — по-прежнему «Повторить обработку» с начала.
+- Локализация CLI и формата экспорта не планируется (SPEC.md §3.5).
+
+]]></description>
+            <enclosure url="https://github.com/fanelsi-pets/MeetingScribe-releases/releases/download/v1.0.0/MeetingScribe-1.0.0.dmg" length="19550977" type="application/octet-stream" sparkle:edSignature="SI59AcUJwH1WM8pdUHpwFvp3dkOxpfOiHbezXFmBbifTlyQ4LLt7ROeuZjhJxUruOPgGfpSih+s2QlAwU+RsBw=="/>
+        </item>
+    </channel>
+</rss>
