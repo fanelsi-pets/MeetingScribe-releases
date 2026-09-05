@@ -3,6 +3,39 @@
     <channel>
         <title>MeetingScribe</title>
         <item>
+            <title>1.0.1</title>
+            <pubDate>Sat, 05 Sep 2026 21:26:54 +0300</pubDate>
+            <link>https://github.com/fanelsi-pets/MeetingScribe-releases</link>
+            <sparkle:version>8</sparkle:version>
+            <sparkle:shortVersionString>1.0.1</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[
+Четыре правки интерфейса по отзыву после релиза 1.0.0: сайдбар, ширина панели, кнопка импорта, имена спикеров после обработки.
+
+- Боковая панель: строка проекта (и «Без проекта») раскрывается и сворачивается кликом по названию, а не только по треугольнику (`DisclosureRowLabel` в `SidebarView`; идентификаторы `project.row.<id>`, `sidebar.meeting.<id>`).
+- Ширина панели: раньше разделитель уходил за окно — колонка встречи не сжималась ниже «идеальной» ширины содержимого, split view становился шире окна и центрировался (панель обрезана слева, транскрипт справа). Лечение — `.frame(minWidth: 0, maxWidth: .infinity)` на содержимом колонки встречи плюс `navigationSplitViewColumnWidth(min: 480, ideal: 620)`; у боковой панели `min: 290, ideal: 300, max: 420` (минимум — ширина, при которой «Импорт…» с подписью, «Новый проект» и переключатель панели ещё помещаются в тулбаре секции).
+- Кнопка импорта: перенесена из тулбара встречи (стояла сразу после названия и читалась как действие над встречей, а иконка без подписи — как «скачать») в секцию боковой панели рядом с «Новый проект», с подписью «Импорт…»; идентификатор `import.button` сохранён, ⌘O и перетаскивание в окно работают как прежде. DESIGN.md §2 обновлён.
+- Имена спикеров после обработки (SPEC.md §3.4, DESIGN.md §3): чип «Спикер N» в транскрипте — кнопка, открывающая `SpeakerNamePopover` (поле с подсказками из «Люди»/чата/видео; Enter и закрытие окна — имя для встречи и экспорта через `setSpeakerName`; «Подтвердить» — `confirmSpeaker` с голосом в профиль; ссылка «Показать спикеров в инспекторе»); пункт «Назвать спикера…» в контекстном меню реплики; строка транскрипта — контейнер доступности с прежней меткой «таймкод, имя: текст», кнопки внутри доступны VoiceOver; в шапке — кнопка «Имена спикеров…» (`showSpeakersInspector`, переиспользована в меню «Встреча») и счётчик «N спикеров без имени» (`unnamedSpeakerCount`). Имена и так уходят в TranscribeFull → промпт follow-up → vault, хранение не менялось.
+- Локализация: 7 новых ключей (uk/en; формы числа для «%lld спикеров без имени»), устаревший «Импорт» удалён; `strings-check.py` — 717 ключей в коде = 717 в каталоге, проблем 0.
+- Тесты: AppTests +1 (`unnamedCountAndQuickName`: счётчик, имя в экспорте, инспектор); UI-тесты — новый `SidebarUITests` (клик по названию проекта, кнопка «Импорт…» с подписью) и `SpeakerNamingUITests.testNameSpeakerFromTranscriptChip` (имя из окна у чипа, счётчик), общий `UITestSupport.choose(_:popUp:item:)`.
+
+### Замеры (2026-09-05, M5 Pro, macOS 26.5.2)
+
+| Прогон | Результат | Комментарий |
+|---|---|---|
+| `swift test --filter AppTests` | **132 теста в 39 наборах, 9.8 с — passed** | новый тест счётчика и экспорта имени |
+| `xcodebuild … build` + каталог строк | BUILD SUCCEEDED; `strings-check.py`: 717 = 717, проблем 0 | «Импорт…», «Имена спикеров…», «Назвать спикера…», «Имя спикера», пояснение окна, help, формы числа |
+| Визуальная проверка: Debug-сборка вторым экземпляром (изолированная библиотека, сценарные движки), computer-use | клик по «Альфа» сворачивает и разворачивает список; при сайдбаре 420 pt экран встречи умещается в колонку 480 pt без обрезки (до правки — панель обрезана слева, транскрипт справа при любом положении разделителя правее ≈290 pt); «Імпорт…» с подписью в секции панели, у названия встречи кнопки нет; окно у чипа: «Спикер 1» → «Оксана» во всех строках, счётчик 3 → 2; «Сохранить .md» даёт «- Оксана (16 с, 3 реплики, ru)» и «[00:00:00] Оксана: …»; «Имена спикеров…» открывает инспектор «Спикеры» | интерфейс на uk (системный язык); переполнение колонки не зависит ни от тулбара, ни от длины реплик, ни от названия — проверено на «Люди»/«Все встречи», фильтре поиска и длинном заголовке |
+| UI-тесты (XCUITest, вне песочницы, приложение пользователя закрыто — раннер завершает все экземпляры bundle id) | **`SidebarUITests` 12.3 с, `SpeakerNamingUITests` 37.8 с + 18.5 с (новый), `OnboardingUITests` 53.1 с + 6.7 с, `FollowupUITests` 56.9 с, `ImportProcessExportUITests` 25.9 с — passed** | первый запуск раннера упал с «Timed out while enabling automation mode» — мешал экранный режим computer-use, после его освобождения прошёл; новый тест чипа сначала не нашёл кнопку: метка доступности на голом `HStack` строки скрывала дочерние элементы — строка стала контейнером (`accessibilityElement(children: .contain)`), кнопки таймкода и чипа видны VoiceOver и XCUITest |
+
+]]></description>
+            <enclosure url="https://github.com/fanelsi-pets/MeetingScribe-releases/releases/download/v1.0.1/MeetingScribe-1.0.1.dmg" length="19572304" type="application/octet-stream" sparkle:edSignature="iGW3uM3LLmGMhjcFHwCIWTpxjD7e0NRvjQTrcqmKwSkIEGzUYRQ9pJ3brIpebxRjPL/ja3e3id8Kn7JMlshlAQ=="/>
+            <sparkle:deltas>
+                <enclosure url="https://github.com/fanelsi-pets/MeetingScribe-releases/releases/download/v1.0.1/MeetingScribe8-7.delta" sparkle:deltaFrom="7" length="724094" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977840" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="K5foDCwe/Dv4M5WdMsLV0sRrlrrTw4Kwkqja0me6DLvQ4l9T4uIQyzaCve5lP0hbt+UMl9zckZUY5i8PyDaMBQ=="/>
+            </sparkle:deltas>
+        </item>
+        <item>
             <title>1.0.0</title>
             <pubDate>Sat, 05 Sep 2026 19:24:49 +0300</pubDate>
             <link>https://github.com/fanelsi-pets/MeetingScribe-releases</link>
@@ -47,7 +80,7 @@
 - Локализация CLI и формата экспорта не планируется (SPEC.md §3.5).
 
 ]]></description>
-            <enclosure url="https://github.com/fanelsi-pets/MeetingScribe-releases/releases/download/v1.0.0/MeetingScribe-1.0.0.dmg" length="19550977" type="application/octet-stream" sparkle:edSignature="SI59AcUJwH1WM8pdUHpwFvp3dkOxpfOiHbezXFmBbifTlyQ4LLt7ROeuZjhJxUruOPgGfpSih+s2QlAwU+RsBw=="/>
+            <enclosure url="https://github.com/fanelsi-pets/MeetingScribe-releases/releases/download/v1.0.1/MeetingScribe-1.0.0.dmg" length="19550977" type="application/octet-stream" sparkle:edSignature="SI59AcUJwH1WM8pdUHpwFvp3dkOxpfOiHbezXFmBbifTlyQ4LLt7ROeuZjhJxUruOPgGfpSih+s2QlAwU+RsBw=="/>
         </item>
     </channel>
 </rss>
